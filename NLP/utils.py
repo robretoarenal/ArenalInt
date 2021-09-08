@@ -60,7 +60,7 @@ class SentimentTrain(object):
 
         tokens = nlp(doc)
         # Lemmatizing each token and converting each token into lowercase
-        tokens = [word.lemma_.lower() for word in tokens]        
+        tokens = [word.lemma_.lower() for word in tokens if not word.is_space]        
         # Removing stop words and punctuations
         tokens = [ word for word in tokens if word not in stop_words and word not in punctuations ]
         # return preprocessed list of tokens
@@ -77,16 +77,10 @@ class SentimentTrain(object):
             ('vectorizer', tfvectorizer),
             ('classifier', classifier_LG)], verbose=True)
 
-        # pipe2_LG = Pipeline([
-        #     ("cleaner", predictors()),
-        #     ('vectorizer', tfvectorizer)], verbose=True)
-
         X = df['Message']
         ylabels = df['Target']
         X_train, X_test, y_train, y_test = train_test_split(X, ylabels, test_size=0.3, random_state=42)
-
         pipe2_LG.fit(X_train,y_train)
-        #pipe2_LG.fit_transform(X_train,y_train)
 
         # Save the model
         model_path = os.path.join(str(pathlib.Path().absolute()), "model")
@@ -117,15 +111,52 @@ class PredictSentiment(object):
         #self.model = load(open(model_file, 'rb'))
         self.model = joblib.load("model/logreg_tfidf.pkl")
 
+    def buildDF(self, sentence):
+        #nlp = spacy.load('en_core_web_sm')
+        #tokens = nlp(sentence)
+        tokens = SentimentTrain("Data").spacy_tokenizer(sentence[0])
+        arr=[]
+        for token in tokens:
+            idx = self.model.steps[1][1].vocabulary_.get(token)
+            coef = self.model.steps[2][1].coef_[0][idx]
+            arr.append({'TOKEN':token, 'Coef':coef})
+
+        return pd.DataFrame(arr)
+
+
+
     def predict(self, sentence):
 
         predict = self.model.predict(sentence)
+        pred_prob = self.model.predict_proba(sentence)
+        prob=0
+        if predict[0] == 0:
+            prob = pred_prob[0][0] * 100
+        else: 
+            prob = pred_prob[0][1] * 100
 
-        return predict
-        #return sentence
+        #tokens = SentimentTrain("Data").spacy_tokenizer(sentence[0])
+        df = self.buildDF(sentence)
 
+        return predict, prob, df
 
+class GetData(object):
+    def __init__(self,data_path):
+        self.data_path=os.path.join(pathlib.Path().absolute(), data_path)
 
+    def dataLoad(self,dataset):
+        if dataset==1:
+            df = pd.read_table(os.path.join(self.data_path,'yelp_labelled.txt'))
+            
+        elif dataset==2:
+            df = pd.read_table(os.path.join(self.data_path,'imdb_labelled.txt'))
+            
+        else:
+            df = pd.read_table(os.path.join(self.data_path,'amazon_cells_labelled.txt'))
+
+        df.columns = ["Message","Target"]
+
+        return df[df["Target"]==1], df[df["Target"]==0]
 
 
 
