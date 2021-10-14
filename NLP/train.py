@@ -1,10 +1,10 @@
 from utils import SentimentTrain
 
 def main():
-    #This function will return features and labels cleaned.
+    """Training the model by using utils.SentimentTrain method. 
+    """
 
-    t = SentimentTrain("Data").train()
-    print(t)
+    t = SentimentTrain("SentimentAnalysis/Data").train()
 
 if __name__ == "__main__":
     main()

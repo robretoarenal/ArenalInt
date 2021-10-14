@@ -18,7 +18,10 @@ from sklearn.model_selection import train_test_split
     
 #Custom transformer using Python standard library (you could use spacy as well)
 class predictors(TransformerMixin):
-
+    """Class used to perform the first step of pipeline. 
+    This consists in lower case all sentences. 
+    
+    """
     # This function will clean the text
     def clean_text(self,text):     
         return text.strip().lower()
@@ -35,11 +38,21 @@ class predictors(TransformerMixin):
         
 
 class SentimentTrain(object):
+    """ Class used to train the sentiment analysis model
+
+    Attributes:
+        data_path (str): path where the text files can be found.
+    """
 
     def __init__(self,data_path):
         self.data_path=os.path.join(pathlib.Path().absolute(), data_path)
 
     def prepareData(self):
+        """ Method that read each txt file and joins them. 
+        Returns:
+            DataFrame: Including the joined files with columns 'Message' and 'Target'
+        
+        """
 
         df_yelp = pd.read_table(os.path.join(self.data_path,'yelp_labelled.txt'))
         df_imdb = pd.read_table(os.path.join(self.data_path,'imdb_labelled.txt'))
@@ -50,15 +63,23 @@ class SentimentTrain(object):
         for column in frames: 
             column.columns = ["Message","Target"]
 
-        df = pd.concat(frames)
-        return df
+        df_reviews = pd.concat(frames)
+        return df_reviews
 
     def spacy_tokenizer(self,doc):
+        """Function that serves as tokenizer in our pipeline
+        Loads the 'en_core_web_sm' model, tokenize the string and perform pre processing. 
+        Preprocessing includes lemmatizing tokens as well as removing stop words and punctuations. 
+        Args:
+            doc(str): sentence to tokenize.
+        Returns: 
+            list: preprocessed tokens. 
+        """
         punctuations = string.punctuation
         nlp = spacy.load('en_core_web_sm')
         stop_words = spacy.lang.en.stop_words.STOP_WORDS
-
         tokens = nlp(doc)
+
         # Lemmatizing each token and converting each token into lowercase
         tokens = [word.lemma_.lower() for word in tokens if not word.is_space]        
         # Removing stop words and punctuations
@@ -67,18 +88,28 @@ class SentimentTrain(object):
         return tokens
 
     def train(self):
-        df = self.prepareData()
+        """Function that performs a pipeline execution.
+
+        This function creates a Pipeline instance. Splits the data into train/test and pass it through the pipeline. 
+        It also saves the model as pickle file once training is over. 
+
+        """
+        df_reviews = self.prepareData()
 
         tfvectorizer = TfidfVectorizer(tokenizer = self.spacy_tokenizer)
         classifier_LG = LogisticRegression(verbose=True)
 
         pipe2_LG = Pipeline([
-            ("cleaner", predictors()),
             ('vectorizer', tfvectorizer),
             ('classifier', classifier_LG)], verbose=True)
 
-        X = df['Message']
-        ylabels = df['Target']
+        # pipe2_LG = Pipeline([
+        #     ("cleaner", predictors()),
+        #     ('vectorizer', tfvectorizer),
+        #     ('classifier', classifier_LG)], verbose=True)
+
+        X = df_reviews['Message']
+        ylabels = df_reviews['Target']
         X_train, X_test, y_train, y_test = train_test_split(X, ylabels, test_size=0.3, random_state=42)
         pipe2_LG.fit(X_train,y_train)
 
@@ -90,20 +121,12 @@ class SentimentTrain(object):
             os.makedirs(model_path)
         dump(pipe2_LG, open(model_file, 'wb'))
 
-        #return self.spacy_tokenizer(frames[0]["Message"][0])
-        #return predictors().fit(X_train)
-        #tf = tfvectorizer.fit_transform(X_train)
-        example = ["I do enjoy my job",
-        "What a poor product!,I will have to get a new one",
-        "I feel amazing!",
-        "This class sucks"]
-        #pred = predictors().fit_transform(example)
-        
-        #return pipe2_LG.fit_transform(example).toarray()
-        return pipe2_LG
-
 
 class PredictSentiment(object):
+    """ Class to load the model and build the tokens DataFrame
+    This class will load the model using the pickle file. So it can be used by the predict method.
+    
+    """
 
     def __init__(self):
         #model_path = os.path.join(str(pathlib.Path().absolute()), "model")
@@ -112,8 +135,14 @@ class PredictSentiment(object):
         self.model = joblib.load("model/logreg_tfidf.pkl")
 
     def buildDF(self, sentence):
-        #nlp = spacy.load('en_core_web_sm')
-        #tokens = nlp(sentence)
+        """Generate DataFrame with tokens and coefficients.
+        Args:
+            sentence(str): sentence to tokenize. 
+        Returns:
+            DataFrame: containing tokens used for prediction and corresponding coeficients,
+        
+        """
+
         tokens = SentimentTrain("Data").spacy_tokenizer(sentence[0])
         arr=[]
         for token in tokens:
@@ -126,6 +155,17 @@ class PredictSentiment(object):
 
 
     def predict(self, sentence):
+        """ Calls the predict and predict_proba function of the model. 
+
+        Args: 
+            sentence(str) to predict sentiment. 
+        
+        Returns: 
+            int- predicted class. 0 if it is negative sentiment or 1 if it is positive.
+            float- probability of being part of the predicted class. 
+            DataFrame- DataFrame with the tokens used to predict and their coeficients.
+
+        """
 
         predict = self.model.predict(sentence)
         pred_prob = self.model.predict_proba(sentence)
@@ -136,15 +176,28 @@ class PredictSentiment(object):
             prob = pred_prob[0][1] * 100
 
         #tokens = SentimentTrain("Data").spacy_tokenizer(sentence[0])
-        df = self.buildDF(sentence)
+        df_tokens = self.buildDF(sentence)
 
-        return predict, prob, df
+        return predict, prob, df_tokens
 
 class GetData(object):
+    """ Class to load the data fileted by positive and negative sentences.
+
+    Attributes: 
+        data_path: path where the text files can be found.
+
+    """
     def __init__(self,data_path):
         self.data_path=os.path.join(pathlib.Path().absolute(), data_path)
 
     def dataLoad(self,dataset):
+        """
+        Args: 
+            dataset(int): number of selected dataset, 1=Yelp 2=IMDB 3=Amazon
+        Returns:
+            DataFrame: First one is the positive sentences, Sencond one is the negative sentences. 
+
+        """
         if dataset==1:
             df = pd.read_table(os.path.join(self.data_path,'yelp_labelled.txt'))
             
