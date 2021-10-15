@@ -3,8 +3,6 @@ numpy
 joblib
 scikit-learn
 opencv-python-headless
-matplotlib
-plotly
-seaborn
 imbalanced-learn
+spacy
 streamlit==0.72.0
