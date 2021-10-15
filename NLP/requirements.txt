@@ -7,3 +7,4 @@ matplotlib
 plotly
 seaborn
 imbalanced-learn
+streamlit==0.72.0
