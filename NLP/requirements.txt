@@ -5,4 +5,4 @@ scikit-learn
 opencv-python-headless
 imbalanced-learn
 spacy
-streamlit==0.72.0
+streamlit

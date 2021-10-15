@@ -10,7 +10,7 @@ if __name__ == "__main__":
     st.markdown("""
         This application contains a trained sentiment analysis model, capable of telling 
         whether a sentence is positive or negative. The data used to develop this model comes from 3 different
-        sources, all of them being customers' opinion about the service/product they cosumed.""")
+        sources, all of them being customers' opinion about the service/product they consumed.""")
 
     #st.sidebar.header('Header')
     #st.sidebar.write('The preprocessing step was performed using lemmatization as well as removing stop words and punctuation.')
