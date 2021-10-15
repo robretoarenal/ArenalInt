@@ -1,8 +1,0 @@
-pandas
-numpy
-joblib
-scikit-learn
-opencv-python-headless
-imbalanced-learn
-spacy
-streamlit

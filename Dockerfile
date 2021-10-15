@@ -13,7 +13,8 @@ WORKDIR /usr/src
 #    && apt-get install python-pip
 
 #Update pip
-RUN pip install --upgrade pip
+RUN pip install --upgrade pip \
+	&& python -m spacy download en_core_web_sm
 
 #Install dependencies using a requirements file
 COPY requirements.txt environment.yml .

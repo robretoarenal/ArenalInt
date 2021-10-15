@@ -19,7 +19,7 @@ if __name__ == "__main__":
     dataset=st.radio(label='',options = ('None','Yelp','IMDB','Amazon'))
     st.write('<style>div.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
     #Create an instance of GetData class
-    gd = GetData('SentimentAnalysis/Data')
+    gd = GetData('Data')
     
     col1, col2 = st.columns(2)
 
